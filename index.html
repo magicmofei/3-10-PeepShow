@@ -24,7 +24,7 @@
     html, body {
       width: 100%;
       height: 100%;
-      oveiflow: hidden;
+      overflow: hidden;
       background: #0a0603;
     }
 
@@ -284,6 +284,37 @@
       opacity: 0.55;
     }
 
+    /* Volume button */
+    #vol-btn {
+      position: absolute;
+      z-index: 5;
+      left: max(4vw, 24px);
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      background: rgba(10,6,3,0.88);
+      border: 2px solid var(--gold);
+      color: var(--gold);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(212,160,23,0.3);
+      transition: all 0.18s ease;
+      user-select: none;
+    }
+    #vol-btn:hover {
+      background: var(--gold);
+      color: var(--sepia-dark);
+      box-shadow: 0 0 26px rgba(212,160,23,0.85);
+      transform: translateY(-50%) scale(1.12);
+    }
+    #vol-btn:active { transform: translateY(-50%) scale(0.9); }
+    #vol-btn.muted { border-color: var(--sepia-light); color: var(--sepia-light); }
+
     /* Back button */
     #back-btn {
       position: absolute;
@@ -359,7 +390,7 @@
     <div id="peep-cabinet"></div>
 
     <div id="peephole-wrap">
-      <video id="peep-video" autoplay loop playsinline muted></video>
+      <video id="peep-video" autoplay loop playsinline></video>
       <div class="scanlines"></div>
     </div>
 
@@ -369,6 +400,7 @@
       <button class="ctrl-btn" id="next-btn" onclick="changeReel(1)" title="下一段">▼</button>
     </div>
 
+    <button id="vol-btn" onclick="toggleVol()" title="音量开关">🔊</button>
     <button id="back-btn" onclick="exitPeep()">← 退出</button>
     <div class="reel-label" id="reel-label">REEL · 001</div>
   </div>
@@ -376,6 +408,7 @@
   <script>
     let reels = [];
     let current = 0;
+    let muted = true;  // 默认静音（浏览器自动播放策略要求）
     const video   = document.getElementById('peep-video');
     const counter = document.getElementById('reel-counter');
     const label   = document.getElementById('reel-label');
@@ -383,28 +416,36 @@
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const enterBtn = document.getElementById('enter-btn');
+    const volBtn  = document.getElementById('vol-btn');
 
-    // ── 自动扫描视频列表 ──────────────────────────────────────────────────
+    // ── 音量控制 ──────────────────────────────────────────────────────────
+    function toggleVol() {
+      muted = !muted;
+      video.muted = muted;
+      volBtn.textContent = muted ? '🔇' : '🔊';
+      volBtn.classList.toggle('muted', muted);
+    }
+
+    // 初始化：静音启动（规避浏览器自动播放限制），显示静音图标
+    video.muted = true;
+    volBtn && (volBtn.textContent = '🔇', volBtn.classList.add('muted'));
+
+    // ── 读取静态视频名单 ──────────────────────────────────────────────────
     async function fetchReels() {
-      // 仅在 http/https 下才请求 API（直接双击 file:// 时跳过）
-      if (location.protocol === 'file:') {
-        // 降级：使用固定列表，提示用户通过服务器启动
-        reels = [{ src: 'pic/Slides-video/001.MP4', label: 'REEL · 001' }];
-        showHint('提示：运行 python3 server.py 可自动读取全部视频');
-        return;
-      }
+      // 核心逻辑：直接读取服务器上的 reels.json 文件
       try {
-        const res = await fetch('/api/reels');
-        const data = await res.json();
-        if (data.length === 0) {
-          reels = [];
+        const res = await fetch('./reels.json'); // 路径相对于 index.html
+        if (!res.ok) throw new Error('无法加载 reels.json');
+        reels = await res.json();
+
+        if (reels.length === 0) {
           showHint('Slides-video 文件夹中暂无视频');
-        } else {
-          reels = data;
         }
       } catch (e) {
-        reels = [];
-        showHint('无法读取视频列表，请确认服务器正在运行');
+        console.error('加载失败:', e);
+        // 紧急保底方案
+        reels = [{ src: 'pic/Slides-video/001.mp4', label: 'ERROR: LOAD FAILED' }];
+        showHint('读取视频列表失败，请检查 reels.json 是否存在');
       }
     }
 
