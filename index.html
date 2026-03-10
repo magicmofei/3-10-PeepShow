@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>西洋镜 · Peep Show</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Special+Elite&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --sepia-dark: #2b1a0e;
+      --sepia-mid: #6b3f1f;
+      --sepia-light: #c9956b;
+      --gold: #d4a017;
+      --cream: #f5e6c8;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      oveiflow: hidden;
+      background: #0a0603;
+    }
+
+    /* ── SCREENS ── */
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.7s ease, visibility 0.7s ease;
+    }
+    .screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* ── MAIN SCREEN ── */
+    #main-screen { flex-direction: column; }
+
+    #main-bg {
+      position: absolute;
+      inset: 0;
+      background: url('pic/main.jpg') center center / cover no-repeat;
+      filter: sepia(0.2) brightness(0.82);
+    }
+    #main-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 38%, rgba(0,0,0,0.65) 100%);
+    }
+
+    /* Film strips */
+    .filmstrip {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 40px;
+      z-index: 1;
+      background: repeating-linear-gradient(
+        to bottom,
+        #0a0603 0px, #0a0603 14px,
+        #1c0f07 14px, #1c0f07 28px
+      );
+      opacity: 0.6;
+    }
+    .filmstrip.left  { left: 0; }
+    .filmstrip.right { right: 0; }
+    .filmstrip::before {
+      content: '';
+      position: absolute;
+      left: 50%; transform: translateX(-50%);
+      width: 16px; top: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 8px,
+        #0a0603 8px, #0a0603 14px
+      );
+    }
+
+    .main-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .title-plate {
+      background: rgba(10, 6, 3, 0.78);
+      border: 2px solid var(--gold);
+      border-radius: 2px;
+      padding: 20px 56px 16px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(212,160,23,0.25), inset 0 0 24px rgba(0,0,0,0.6);
+    }
+    .title-plate h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.2rem, 5.5vw, 4rem);
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.18em;
+      text-shadow: 0 0 24px rgba(212,160,23,0.55);
+      line-height: 1;
+    }
+    .title-plate p {
+      font-family: 'Special Elite', cursive;
+      font-size: clamp(0.65rem, 1.6vw, 0.9rem);
+      color: var(--cream);
+      letter-spacing: 0.38em;
+      margin-top: 10px;
+      opacity: 0.75;
+    }
+
+    /* Enter button */
+    .coin-btn {
+      cursor: pointer;
+      background: none;
+      border: none;
+      outline: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 0;
+      animation: floatUp 3.2s ease-in-out infinite;
+    }
+    .btn-body {
+      font-family: 'Special Elite', cursive;
+      font-size: clamp(0.9rem, 2vw, 1.15rem);
+      letter-spacing: 0.22em;
+      color: var(--gold);
+      border: 2px solid var(--gold);
+      padding: 14px 44px;
+      border-radius: 2px;
+      background: rgba(10,6,3,0.82);
+      box-shadow: 0 0 22px rgba(212,160,23,0.38);
+      transition: background 0.22s, color 0.22s, box-shadow 0.22s;
+    }
+    .coin-btn:hover .btn-body {
+      background: var(--gold);
+      color: var(--sepia-dark);
+      box-shadow: 0 0 44px rgba(212,160,23,0.9);
+    }
+    .coin-btn:active .btn-body {
+      transform: scale(0.96);
+    }
+    .btn-caret {
+      width: 0; height: 0;
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
+      border-top: 13px solid var(--gold);
+      opacity: 0.65;
+      animation: caretBounce 1.1s ease-in-out infinite;
+    }
+    @keyframes floatUp {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-9px); }
+    }
+    @keyframes caretBounce {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(5px); }
+    }
+
+    /* ── PEEP SCREEN ── */
+    #peep-screen { background: #000; }
+
+    #peep-cabinet {
+      position: absolute;
+      inset: 0;
+      background: url('pic/show.jpg') center center / cover no-repeat;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Circular peephole */
+    #peephole-wrap {
+      position: relative;
+      z-index: 2;
+      width: min(50vw, 50vh);
+      height: min(50vw, 50vh);
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 5px #0f0804,
+        0 0 0 9px #5a3318,
+        0 0 0 13px #0f0804,
+        0 0 50px rgba(0,0,0,0.95),
+        inset 0 0 50px rgba(0,0,0,0.45);
+      background: #000;
+    }
+    /* Lens glare */
+    #peephole-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 33% 28%,
+        rgba(255,255,255,0.07) 0%,
+        transparent 55%);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #peep-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: sepia(0.12) contrast(1.06) brightness(0.95);
+      transition: opacity 0.35s ease;
+    }
+
+    /* Scanlines */
+    .scanlines {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 3px,
+        rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px
+      );
+      pointer-events: none;
+      z-index: 8;
+    }
+
+    /* Up / Down controls */
+    #controls {
+      position: absolute;
+      z-index: 5;
+      right: max(4vw, 24px);
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .ctrl-btn {
+      cursor: pointer;
+      background: rgba(10,6,3,0.88);
+      border: 2px solid var(--gold);
+      color: var(--gold);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(212,160,23,0.3);
+      transition: all 0.18s ease;
+      user-select: none;
+    }
+    .ctrl-btn:hover {
+      background: var(--gold);
+      color: var(--sepia-dark);
+      box-shadow: 0 0 26px rgba(212,160,23,0.85);
+      transform: scale(1.12);
+    }
+    .ctrl-btn:active { transform: scale(0.9); }
+    .ctrl-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .reel-counter {
+      font-family: 'Special Elite', cursive;
+      font-size: 0.68rem;
+      color: var(--cream);
+      letter-spacing: 0.12em;
+      text-align: center;
+      opacity: 0.55;
+    }
+
+    /* Back button */
+    #back-btn {
+      position: absolute;
+      z-index: 5;
+      left: max(3vw, 18px);
+      bottom: max(3vh, 18px);
+      cursor: pointer;
+      background: rgba(10,6,3,0.88);
+      border: 2px solid var(--sepia-light);
+      color: var(--sepia-light);
+      font-family: 'Special Elite', cursive;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      padding: 10px 22px;
+      border-radius: 2px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.55);
+      transition: background 0.2s, color 0.2s;
+    }
+    #back-btn:hover {
+      background: var(--sepia-light);
+      color: var(--sepia-dark);
+    }
+
+    /* Reel label */
+    .reel-label {
+      position: absolute;
+      z-index: 5;
+      bottom: max(3vh, 18px);
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Special Elite', cursive;
+      font-size: clamp(0.6rem, 1.4vw, 0.82rem);
+      color: var(--cream);
+      letter-spacing: 0.3em;
+      opacity: 0.45;
+      white-space: nowrap;
+    }
+
+    /* Flash transition */
+    #flash {
+      position: fixed;
+      inset: 0;
+      background: #fffdf0;
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="flash"></div>
+
+  <!-- ══ MAIN SCREEN ══ -->
+  <div class="screen" id="main-screen">
+    <div id="main-bg"></div>
+    <div class="filmstrip left"></div>
+    <div class="filmstrip right"></div>
+    <div class="main-content">
+      <div class="title-plate">
+        <h1>西 洋 镜</h1>
+        <p>PEEP SHOW &nbsp;·&nbsp; CABINET OF CURIOSITIES</p>
+      </div>
+      <button class="coin-btn" id="enter-btn" onclick="enterPeep()">
+        <div class="btn-body">▶&nbsp;&nbsp;投币窥视</div>
+        <div class="btn-caret"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ PEEP SCREEN ══ -->
+  <div class="screen hidden" id="peep-screen">
+    <div id="peep-cabinet"></div>
+
+    <div id="peephole-wrap">
+      <video id="peep-video" autoplay loop playsinline muted></video>
+      <div class="scanlines"></div>
+    </div>
+
+    <div id="controls">
+      <button class="ctrl-btn" id="prev-btn" onclick="changeReel(-1)" title="上一段">▲</button>
+      <div class="reel-counter" id="reel-counter">1 / 1</div>
+      <button class="ctrl-btn" id="next-btn" onclick="changeReel(1)" title="下一段">▼</button>
+    </div>
+
+    <button id="back-btn" onclick="exitPeep()">← 退出</button>
+    <div class="reel-label" id="reel-label">REEL · 001</div>
+  </div>
+
+  <script>
+    let reels = [];
+    let current = 0;
+    const video   = document.getElementById('peep-video');
+    const counter = document.getElementById('reel-counter');
+    const label   = document.getElementById('reel-label');
+    const flash   = document.getElementById('flash');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const enterBtn = document.getElementById('enter-btn');
+
+    // ── 自动扫描视频列表 ──────────────────────────────────────────────────
+    async function fetchReels() {
+      // 仅在 http/https 下才请求 API（直接双击 file:// 时跳过）
+      if (location.protocol === 'file:') {
+        // 降级：使用固定列表，提示用户通过服务器启动
+        reels = [{ src: 'pic/Slides-video/001.MP4', label: 'REEL · 001' }];
+        showHint('提示：运行 python3 server.py 可自动读取全部视频');
+        return;
+      }
+      try {
+        const res = await fetch('/api/reels');
+        const data = await res.json();
+        if (data.length === 0) {
+          reels = [];
+          showHint('Slides-video 文件夹中暂无视频');
+        } else {
+          reels = data;
+        }
+      } catch (e) {
+        reels = [];
+        showHint('无法读取视频列表，请确认服务器正在运行');
+      }
+    }
+
+    function showHint(msg) {
+      let hint = document.getElementById('server-hint');
+      if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'server-hint';
+        hint.style.cssText = [
+          'position:fixed', 'bottom:18px', 'right:18px', 'z-index:500',
+          'background:rgba(10,6,3,0.88)', 'border:1px solid #6b3f1f',
+          'color:#c9956b', 'font-family:monospace', 'font-size:0.72rem',
+          'padding:10px 16px', 'border-radius:3px', 'max-width:320px',
+          'line-height:1.5', 'opacity:0.85'
+        ].join(';');
+        document.body.appendChild(hint);
+      }
+      hint.textContent = msg;
+    }
+
+    // ── Flash helper ────────────────────────────────────────────────────
+    function doFlash(cb) {
+      flash.style.transition = 'none';
+      flash.style.opacity = '0.45';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          flash.style.transition = 'opacity 0.5s ease';
+          flash.style.opacity = '0';
+          if (cb) cb();
+        });
+      });
+    }
+
+    // ── Screen transitions ───────────────────────────────────────────────
+    function enterPeep() {
+      if (reels.length === 0) return;
+      doFlash(() => {
+        document.getElementById('main-screen').classList.add('hidden');
+        document.getElementById('peep-screen').classList.remove('hidden');
+        current = 0;
+        loadReel(current);
+      });
+    }
+
+    function exitPeep() {
+      doFlash(() => {
+        video.pause();
+        video.removeAttribute('src');
+        document.getElementById('peep-screen').classList.add('hidden');
+        document.getElementById('main-screen').classList.remove('hidden');
+      });
+    }
+
+    // ── Reel control ─────────────────────────────────────────────────────
+    function updateButtons() {
+      prevBtn.disabled = (current === 0);
+      nextBtn.disabled = (current === reels.length - 1);
+    }
+
+    function loadReel(idx) {
+      const reel = reels[idx];
+      video.style.opacity = '0';
+      video.src = reel.src;
+      video.load();
+      video.play().catch(() => {});
+      label.textContent   = reel.label;
+      counter.textContent = (idx + 1) + ' / ' + reels.length;
+      updateButtons();
+      setTimeout(() => { video.style.opacity = '1'; }, 60);
+    }
+
+    function changeReel(dir) {
+      const next = current + dir;
+      if (next < 0 || next >= reels.length) return;
+      current = next;
+      video.style.opacity = '0';
+      setTimeout(() => { loadReel(current); }, 320);
+    }
+
+    // ── 初始化：拉取视频列表后解锁入口按钮 ──────────────────────────────
+    enterBtn.style.opacity = '0.4';
+    enterBtn.style.pointerEvents = 'none';
+    fetchReels().then(() => {
+      enterBtn.style.opacity = '';
+      enterBtn.style.pointerEvents = '';
+      updateButtons();
+    });
+  </script>
+</body>
+</html>
